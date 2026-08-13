@@ -175,22 +175,70 @@ const feedback = document.getElementById('formFeedback');
 const submitBtn = document.getElementById('submitBtn');
 
 if (form) {
-  form.addEventListener('submit', e => {
+  form.addEventListener('submit', async (e) => {
     e.preventDefault();
+
     const btnText = submitBtn.querySelector('.btn-text');
     const btnLoader = submitBtn.querySelector('.btn-loader');
+
+    const name = document.getElementById('name').value.trim();
+    const email = document.getElementById('email').value.trim();
+    const message = document.getElementById('message').value.trim();
+
+    // Validate
+    if (!name || !email || !message) {
+      feedback.textContent = 'Please fill in all fields.';
+      feedback.className = 'form-feedback error';
+      return;
+    }
+
+    // Show loading
     btnText.style.display = 'none';
     btnLoader.style.display = '';
     submitBtn.disabled = true;
 
-    setTimeout(() => {
+    try {
+      const response = await fetch('/api/contact', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          name: name,
+          email: email,
+          message: message
+        })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to send message');
+      }
+
+      // Success
+      feedback.textContent = '✓ Message sent! I\'ll get back to you soon.';
+      feedback.className = 'form-feedback success';
+
+      form.reset();
+
+      setTimeout(() => {
+        feedback.textContent = '';
+        feedback.className = 'form-feedback';
+      }, 5000);
+
+    } catch (error) {
+      console.error('Contact form error:', error);
+
+      feedback.textContent =
+        '✕ Unable to send message. Please try again later.';
+      feedback.className = 'form-feedback error';
+
+    } finally {
+      // Reset button
       btnText.style.display = '';
       btnLoader.style.display = 'none';
       submitBtn.disabled = false;
-      feedback.textContent = '✓ Message sent! I\'ll get back to you soon.';
-      feedback.className = 'form-feedback success';
-      form.reset();
-      setTimeout(() => { feedback.textContent = ''; feedback.className = 'form-feedback'; }, 5000);
-    }, 1800);
+    }
   });
 }
